@@ -26,7 +26,13 @@ def scrape_and_write_to_csv():
 
         for event in all_events:
             eventAge = event.find_element("xpath","//span/strong")
-            eventAgeGroup = eventAge.text
+            eventAgeGroups = eventAge.text
+            keyword_pattern = re.compile(r'(\b(?:grade|ages|kids|years)\b)', re.IGNORECASE)
+            matches = keyword_pattern.findall(eventAgeGroups)
+            if matches:
+                eventAgeGroup = eventAgeGroups
+            else:
+                eventAgeGroup = None
             eventTitle = event.find_element("xpath",".//div[@class='event_name']").text
 
             wait = WebDriverWait(driver, 10)
