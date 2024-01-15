@@ -22,21 +22,21 @@ def scrape_and_write_to_csv():
     all_events = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='one_event']")))
     with open('event_data.csv', 'w', newline='', encoding='utf-8') as csvfile:
         csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['eventTitle','eventAgeGroup', 'eventRegisterLink', 'eventOrganizer','eventOrganizerPhone', 'start_datetime_formatted', 'end_datetime_formatted', 'start_time', 'end_time', 'eventOrganizerEmail', 'eventImageURL', 'eventDescription', 'eventVenueName'])
+        csvwriter.writerow(['eventTitle','eventAgeGroup', 'eventRegisterLink', 'eventOrganizer','eventOrganizerPhone', 'start_time', 'end_time', 'eventOrganizerEmail', 'eventImageURL', 'eventDescription', 'eventVenueName'])
 
         for event in all_events:
-            eventAge = event.find_element("xpath","//span/strong")
-            eventAgeGroups = eventAge.text
-            keyword_pattern = re.compile(r'(\b(?:grade|ages|kids|years)\b)', re.IGNORECASE)
-            matches = keyword_pattern.findall(eventAgeGroups)
-            if matches:
-                eventAgeGroup = eventAgeGroups
-            else:
-                eventAgeGroup = None
+            eventAge = event.find_element("xpath",".//span/strong")
+            eventAgeGroup = eventAge.text
+            # keyword_pattern = re.compile(r'(\b(?:grade|ages|kids|years)\b)', re.IGNORECASE)
+            # matches = keyword_pattern.findall(eventAgeGroups)
+            # if matches:
+            #     eventAgeGroup = eventAgeGroups
+            # else:
+            #     eventAgeGroup = None
             eventTitle = event.find_element("xpath",".//div[@class='event_name']").text
 
             wait = WebDriverWait(driver, 10)
-            input_element = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='event_registration']/input")))
+            input_element = wait.until(EC.presence_of_element_located((By.XPATH, ".//div[@class='event_registration']/input")))
             eventRegister = input_element.get_attribute("onclick")
             link_start = eventRegister.find("'") + 1
             link_end = eventRegister.rfind("'")
@@ -46,7 +46,7 @@ def scrape_and_write_to_csv():
             time = time_element.text
             start_time, end_time = map(str.strip, time.split('-'))
 
-            contact_element = event.find_element("xpath", "//div[@class='event_contact']")
+            contact_element = event.find_element("xpath", ".//div[@class='event_contact']")
             contact_text = contact_element.text
             contact_info = contact_text.split(':')
             eventOrganizer = contact_info[1].split('(')[0].strip()
