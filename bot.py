@@ -8,7 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 import os
 import csv
-import datetime
+import re
+
 def scrape_and_write_to_csv():
     driver = Chrome()
     driver.get("http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm?zeeOrg=BETHEL")
@@ -16,13 +17,16 @@ def scrape_and_write_to_csv():
     driver.refresh()
     wait = WebDriverWait(driver, 20) 
     all_dates = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='event_date_row']")))
+    print(all_dates)
     wait = WebDriverWait(driver, 20)  
     all_events = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='one_event']")))
     with open('event_data.csv', 'w', newline='', encoding='utf-8') as csvfile:
         csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['eventTitle', 'eventRegisterLink', 'eventOrganizer','eventOrganizerPhone', 'start_datetime_formatted', 'end_datetime_formatted', 'start_time', 'end_time', 'eventOrganizerEmail', 'eventImageURL', 'eventDescription', 'eventVenueName'])
+        csvwriter.writerow(['eventTitle','eventAgeGroup', 'eventRegisterLink', 'eventOrganizer','eventOrganizerPhone', 'start_datetime_formatted', 'end_datetime_formatted', 'start_time', 'end_time', 'eventOrganizerEmail', 'eventImageURL', 'eventDescription', 'eventVenueName'])
 
         for event in all_events:
+            eventAge = event.find_element("xpath","//span/strong")
+            eventAgeGroup = eventAge.text
             eventTitle = event.find_element("xpath",".//div[@class='event_name']").text
 
             wait = WebDriverWait(driver, 10)
@@ -54,7 +58,38 @@ def scrape_and_write_to_csv():
             location = event.find_element("xpath",".//div[@class='event_location']")
             eventVenueName = location.text if location else None
 
-            csvwriter.writerow([eventTitle, eventRegisterLink, end_time, start_time, eventOrganizerEmail, eventOrganizer, eventOrganizerPhone, eventImageURL, eventDescription, eventVenueName])
+            print({'eventTitle': eventTitle,
+                   'eventDescription':eventDescription,
+                   'eventCategory' :None,
+                   'eventImageURL' :eventImageURL,
+                   'eventCostFree': None,
+                   'eventCostLowest': None,
+                   'eventCostHighest': None,
+                   'eventStartDateTime': start_time,
+                   'eventEndDateTime': end_time,
+                   'eventPurchaseLink': None,
+                   'eventRsvpLink': None,
+                   'eventRegisterLink': eventRegisterLink,
+                   'eventOrganizer': eventOrganizer,
+                   'eventOrganizerEmail': eventOrganizerEmail,
+                   'eventOrganizerPhone': eventOrganizerPhone,
+                   'eventUrl ': None,
+                   'eventAgeGroup': eventAgeGroup,
+                   'eventSourceCategories': None,
+                   'eventVenueName': eventVenueName,
+                   'eventVenueAddress1':None,
+                   'eventVenueAddress2':None,
+                   'eventVenueTown':'',
+                   'eventVenueState': '',
+                   'eventVenueZip': '',
+                   'eventVenuePhone' : '',
+                   'eventVenueEmail': '',
+                   'eventVenueURL':'',
+                   'eventVenueRoom':'',
+                   'eventSourceWebsite': 'http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm?zeeOrg=BETHEL'
+                     })
+
+            csvwriter.writerow([eventTitle, eventAgeGroup, eventRegisterLink, end_time, start_time, eventOrganizerEmail, eventOrganizer, eventOrganizerPhone, eventImageURL, eventDescription, eventVenueName])
     driver.quit()
 
 
@@ -62,4 +97,15 @@ while True:
     scrape_and_write_to_csv()
     sleep(600)
 
-     # contact = event.find_element("xpath","//div[@class='event_contact']/text()[1]")
+    
+    # all_dates_sets = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='event_date_row']")))
+            
+    # for date in all_dates_sets:
+    #     date_name = date.get_attribute("name")
+    #     events_for_date = wait.until(EC.presence_of_all_elements_located((By.XPATH, f"//a[@name='{date_name}']/parent::div/following::div[@class='one_event']")))
+    #     for event in events_for_date:
+    #         eventAge = event.find_element(By.XPATH, ".//span/strong")
+    #         eventAgeGroup = eventAge.text
+    #         eventTitle = event.find_element(By.XPATH, ".//div[@class='event_name']").text
+            
+
