@@ -35,7 +35,7 @@ def extract_event_info(root,start_date,end_date):
                 start_time_dt = datetime.strptime(start_time, '%I:%M %p')
                 end_time_dt = datetime.strptime(end_time, '%I:%M %p')
 
-                        # Format start_time and end_time as "00:00:00"
+                # Format start_time and end_time as "00:00:00"
                 formatted_start_time = start_time_dt.strftime('%H:%M:%S')
                 formatted_end_time = end_time_dt.strftime('%H:%M:%S')
 
@@ -45,7 +45,8 @@ def extract_event_info(root,start_date,end_date):
 
         eventAgeGroup_elements = event.xpath(".//span/strong/text()")
         keywords = ['kids', 'children', 'ages', 'grades','years','old','grade']
-        filtered_eventAgeGroup = [text for text in eventAgeGroup_elements if any(keyword in text.lower() for keyword in keywords)]
+        filtered_eventAge = [text for text in eventAgeGroup_elements if any(keyword in text.lower() for keyword in keywords)]
+        filtered_eventAgeGroup = filtered_eventAge[0] if filtered_eventAge else None
 
         eventRegister = event.xpath(".//div[@class='event_registration']/input/@onclick") 
         eventRegisterLink = eventRegister[0].split("'")[1] if eventRegister else None
@@ -64,7 +65,8 @@ def extract_event_info(root,start_date,end_date):
         eventOrganizerEmail_element = event.xpath(".//div[@class='event_contact']/a/@href")
         eventOrganizerEmail = eventOrganizerEmail_element[0].split(':')[-1] if eventOrganizerEmail_element else None
 
-        eventImageURL = event.xpath(".//div[@class='event_description']/p[1]/img/@src")
+        image_url = event.xpath(".//div[@class='event_description']/p[1]/img/@src")
+        eventImageURL = image_url[0] if image_url else None
         
         location_element = event.xpath(".//div[@class='event_location']/text()")
         eventVenueName = location_element[0].replace('LOCATION:', '').strip() if location_element else None
@@ -75,7 +77,7 @@ def extract_event_info(root,start_date,end_date):
         event_dict['eventRegisterLink'] = eventRegisterLink
         event_dict['eventOrganizerPhone'] = eventOrganizerPhone
         event_dict['eventImageURL'] = eventImageURL
-        event_dict['eventVenueName'] = eventVenueName
+        event_dict['eventVenueName'] = None
         event_dict['eventStartDateTime'] = f"{start_date} {formatted_start_time.strip()}"
         event_dict['eventEndDateTime'] = f"{end_date} {formatted_end_time.strip()}"
         event_dict['eventCategory'] = None
@@ -85,17 +87,17 @@ def extract_event_info(root,start_date,end_date):
         event_dict['eventRsvpLink'] = None
         event_dict['eventUrl '] = None
         event_dict['eventSourceCategories'] = None
-        event_dict['eventSourceWebsite  '] = 'http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm'
+        event_dict['eventSourceWebsite  '] = 'https://www.bethellibrary.org/'
         event_dict['eventVenueAddress1'] = '189 Greenwood Avenue. Bethel, CT 06801.'
         event_dict['eventVenueAddress2'] = None
-        event_dict['eventVenueTown'] = None
-        event_dict['eventVenueState'] = None
+        event_dict['eventVenueTown'] = 'Greenwood Avenue, Bethel'
+        event_dict['eventVenueState'] = 'CT'
         event_dict['eventCostHighest'] = None
-        event_dict['eventVenueZip'] = None
+        event_dict['eventVenueZip'] = '06801'
         event_dict['eventVenuePhone'] = '2037948756'
         event_dict['eventVenueEmail'] = None
         event_dict['eventVenueURL'] = None
-        event_dict['eventVenueRoom'] = None
+        event_dict['eventVenueRoom'] = eventVenueName
         event_dict['eventPurchaseLink'] = None
 
         print(event_dict)
