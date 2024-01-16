@@ -1,117 +1,123 @@
-from selenium.webdriver import Chrome,ChromeOptions
-from time import sleep
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-import os
-import csv
+import requests
+from lxml import html
 import re
+# import schedule
+import time
+from subprocess import run
 
-def scrape_and_write_to_csv():
-    driver = Chrome()
-    driver.get("http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm?zeeOrg=BETHEL")
-    sleep(5)
-    driver.refresh()
-    wait = WebDriverWait(driver, 20) 
-    all_dates = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='event_date_row']")))
-    print(all_dates)
-    wait = WebDriverWait(driver, 20)  
-    all_events = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='one_event']")))
-    with open('event_data.csv', 'w', newline='', encoding='utf-8') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['eventTitle','eventAgeGroup', 'eventRegisterLink', 'eventOrganizer','eventOrganizerPhone', 'start_time', 'end_time', 'eventOrganizerEmail', 'eventImageURL', 'eventDescription', 'eventVenueName'])
+def extract_event_info(root,start_date,end_date):
+    if end_date != None:
+        xpath = f"""//div[@class='one_event' 
+                    and 
+                    preceding-sibling::div[@class='event_date_row']/a[@name='{start_date}'] 
+                    and 
+                    following-sibling::div[@class='event_date_row']/a[@name='{end_date}'] ]"""
+    else:
+        xpath = f"""//div[@class='one_event' 
+                    and 
+                    preceding-sibling::div[@class='event_date_row']/a[@name='{start_date}']]"""
+        
+    events = root.xpath(xpath)
 
-        for event in all_events:
-            eventAge = event.find_element("xpath",".//span/strong")
-            eventAgeGroup = eventAge.text
-            # keyword_pattern = re.compile(r'(\b(?:grade|ages|kids|years)\b)', re.IGNORECASE)
-            # matches = keyword_pattern.findall(eventAgeGroups)
-            # if matches:
-            #     eventAgeGroup = eventAgeGroups
-            # else:
-            #     eventAgeGroup = None
-            eventTitle = event.find_element("xpath",".//div[@class='event_name']").text
+    for event in events:
+        event_dict = dict()
+        eventTitle = event.xpath(".//div[@class='event_name']/text()")
+        if eventTitle:
+            event_dict['eventTitle'] = eventTitle[0].strip()
+        else:
+            event_dict['eventTitle'] = None
+        time_element = event.xpath(".//div[@class='event_time']/text()[1]")
+        for item in time_element:
+            if isinstance(item, str):
+                start_time, end_time = item.split('-')
 
-            wait = WebDriverWait(driver, 10)
-            input_element = wait.until(EC.presence_of_element_located((By.XPATH, ".//div[@class='event_registration']/input")))
-            eventRegister = input_element.get_attribute("onclick")
-            link_start = eventRegister.find("'") + 1
-            link_end = eventRegister.rfind("'")
-            eventRegisterLink = eventRegister[link_start:link_end]
-
-            time_element = event.find_element("xpath",".//div[@class='event_time']")
-            time = time_element.text
-            start_time, end_time = map(str.strip, time.split('-'))
-
-            contact_element = event.find_element("xpath", ".//div[@class='event_contact']")
-            contact_text = contact_element.text
-            contact_info = contact_text.split(':')
-            eventOrganizer = contact_info[1].split('(')[0].strip()
-
-            eventOrganizerPhone = ''.join(char for char in contact_info[1].split('(')[1] if char.isdigit())
-
-            eventOrganizerEmail = event.find_element("xpath",".//div[@class='event_contact']/a")
-
-            image_element = event.find_element("xpath", ".//div[@class='event_description']/p[1]/img")
-            eventImageURL = image_element.get_attribute("src")
-
-            description = event.find_elements("xpath",".//div[@class='event_description']/p/span")
-            eventDescription = description[0].text if description else None  
-
-            location = event.find_element("xpath",".//div[@class='event_location']")
-            eventVenueName = location.text if location else None
-
-            print({'eventTitle': eventTitle,
-                   'eventDescription':eventDescription,
-                   'eventCategory' :None,
-                   'eventImageURL' :eventImageURL,
-                   'eventCostFree': None,
-                   'eventCostLowest': None,
-                   'eventCostHighest': None,
-                   'eventStartDateTime': start_time,
-                   'eventEndDateTime': end_time,
-                   'eventPurchaseLink': None,
-                   'eventRsvpLink': None,
-                   'eventRegisterLink': eventRegisterLink,
-                   'eventOrganizer': eventOrganizer,
-                   'eventOrganizerEmail': eventOrganizerEmail,
-                   'eventOrganizerPhone': eventOrganizerPhone,
-                   'eventUrl ': None,
-                   'eventAgeGroup': eventAgeGroup,
-                   'eventSourceCategories': None,
-                   'eventVenueName': eventVenueName,
-                   'eventVenueAddress1':None,
-                   'eventVenueAddress2':None,
-                   'eventVenueTown':'',
-                   'eventVenueState': '',
-                   'eventVenueZip': '',
-                   'eventVenuePhone' : '',
-                   'eventVenueEmail': '',
-                   'eventVenueURL':'',
-                   'eventVenueRoom':'',
-                   'eventSourceWebsite': 'http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm?zeeOrg=BETHEL'
-                     })
-
-            csvwriter.writerow([eventTitle, eventAgeGroup, eventRegisterLink, end_time, start_time, eventOrganizerEmail, eventOrganizer, eventOrganizerPhone, eventImageURL, eventDescription, eventVenueName])
-    driver.quit()
+        description = event.xpath(".//div[@class='event_description']//p/span//text()")
+        eventDescription = ' '.join(description).strip()
 
 
-while True:
-    scrape_and_write_to_csv()
-    sleep(600)
+        eventAgeGroup_elements = event.xpath(".//span/strong/text()")
+        keywords = ['kids', 'children', 'ages', 'grades','years','old','grade']
+        filtered_eventAgeGroup = [text for text in eventAgeGroup_elements if any(keyword in text.lower() for keyword in keywords)]
 
-    
-    # all_dates_sets = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='event_date_row']")))
-            
-    # for date in all_dates_sets:
-    #     date_name = date.get_attribute("name")
-    #     events_for_date = wait.until(EC.presence_of_all_elements_located((By.XPATH, f"//a[@name='{date_name}']/parent::div/following::div[@class='one_event']")))
-    #     for event in events_for_date:
-    #         eventAge = event.find_element(By.XPATH, ".//span/strong")
-    #         eventAgeGroup = eventAge.text
-    #         eventTitle = event.find_element(By.XPATH, ".//div[@class='event_name']").text
-            
+        eventRegister = event.xpath(".//div[@class='event_registration']/input/@onclick") 
+        eventRegisterLink = eventRegister[0].split("'")[1] if eventRegister else None
+        
+        contact_element = event.xpath(".//div[@class='event_contact']/text()")
+        contact_info_list = [str(element).strip() for element in contact_element]
 
+        if contact_info_list:
+            eventOrganizer = contact_info_list[0].replace("CONTACT:", "").strip().split('(')[0].strip().split('\xa0')[0]
+            event_dict['eventOrganizer'] = eventOrganizer
+        else:
+            event_dict['eventOrganizer'] = None
+
+        eventOrganizerPhone = re.sub(r'\D', '', contact_info_list[0]) if contact_info_list else None
+        
+        eventOrganizerEmail_element = event.xpath(".//div[@class='event_contact']/a/@href")
+        eventOrganizerEmail = eventOrganizerEmail_element[0].split(':')[-1] if eventOrganizerEmail_element else None
+
+        eventImageURL = event.xpath(".//div[@class='event_description']/p[1]/img/@src")
+        
+        location_element = event.xpath(".//div[@class='event_location']/text()")
+        eventVenueName = location_element[0].replace('LOCATION:', '').strip() if location_element else None
+
+        event_dict['eventDescription'] = eventDescription
+        event_dict['eventOrganizerEmail'] = eventOrganizerEmail
+        event_dict['eventAgeGroup'] = filtered_eventAgeGroup
+        event_dict['eventRegisterLink'] = eventRegisterLink
+        event_dict['eventOrganizerPhone'] = eventOrganizerPhone
+        event_dict['eventImageURL'] = eventImageURL
+        event_dict['eventVenueName'] = eventVenueName
+        event_dict['eventStartDateTime'] = f"{start_date} {start_time.strip()}"
+        event_dict['eventEndDateTime'] = f"{end_date} {end_time.strip()}"
+        event_dict['eventCategory'] = None
+        event_dict['eventCostFree'] = None
+        event_dict['eventCostLowest'] = None
+        event_dict['eventCostHighest'] = None
+        event_dict['eventRsvpLink'] = None
+        event_dict['eventUrl '] = None
+        event_dict['eventSourceCategories'] = None
+        event_dict['eventSourceWebsite  '] = 'http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm'
+        event_dict['eventVenueAddress1'] = '189 Greenwood Avenue. Bethel, CT 06801.'
+        event_dict['eventVenueAddress2'] = None
+
+        print(event_dict)
+
+
+
+
+# Print the values
+def scrape_eventkeeper():
+    testing = True
+    if not testing:
+        url = 'http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+
+        response = requests.get(url, headers=headers)
+        # Assuming you have the HTML content in the 'response' variable
+        html_content = response.text
+    else:
+        with open('html_content.txt', 'r', encoding='utf-8') as file:
+            html_content = file.read()
+
+    root = html.fromstring(html_content)
+
+    dates = root.xpath('//div[@class="event_date_row"]/a/@name')
+    for i in range(len(dates)):
+        start_date = dates[i]
+        if i != len(dates)-1:
+            end_date = dates[i+1]
+        else:
+            end_date = None
+        
+        extract_event_info(root=root,start_date=start_date,end_date=end_date)
+
+if __name__=='__main__':
+    scrape_eventkeeper()
+# if __name__ == '__main__':
+#     # Schedule the script to run every 10 minutes
+#     schedule.every(10).minutes.do(scrape_eventkeeper)
+
+#     while True:
+#         schedule.run_pending()
+#         time.sleep(1)
