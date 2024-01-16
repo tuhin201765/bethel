@@ -2,7 +2,7 @@ import requests
 from lxml import html
 import re
 # import schedule
-import time
+from datetime import datetime
 from subprocess import run
 
 def extract_event_info(root,start_date,end_date):
@@ -30,6 +30,14 @@ def extract_event_info(root,start_date,end_date):
         for item in time_element:
             if isinstance(item, str):
                 start_time, end_time = item.split('-')
+                start_time = start_time.strip()
+                end_time = end_time.strip()
+                start_time_dt = datetime.strptime(start_time, '%I:%M %p')
+                end_time_dt = datetime.strptime(end_time, '%I:%M %p')
+
+                        # Format start_time and end_time as "00:00:00"
+                formatted_start_time = start_time_dt.strftime('%H:%M:%S')
+                formatted_end_time = end_time_dt.strftime('%H:%M:%S')
 
         description = event.xpath(".//div[@class='event_description']//p/span//text()")
         eventDescription = ' '.join(description).strip()
@@ -68,8 +76,8 @@ def extract_event_info(root,start_date,end_date):
         event_dict['eventOrganizerPhone'] = eventOrganizerPhone
         event_dict['eventImageURL'] = eventImageURL
         event_dict['eventVenueName'] = eventVenueName
-        event_dict['eventStartDateTime'] = f"{start_date} {start_time.strip()}"
-        event_dict['eventEndDateTime'] = f"{end_date} {end_time.strip()}"
+        event_dict['eventStartDateTime'] = f"{start_date} {formatted_start_time.strip()}"
+        event_dict['eventEndDateTime'] = f"{end_date} {formatted_end_time.strip()}"
         event_dict['eventCategory'] = None
         event_dict['eventCostFree'] = None
         event_dict['eventCostLowest'] = None
@@ -80,6 +88,15 @@ def extract_event_info(root,start_date,end_date):
         event_dict['eventSourceWebsite  '] = 'http://www.eventkeeper.com/mars/xpages/B/BETHEL/EK.cfm'
         event_dict['eventVenueAddress1'] = '189 Greenwood Avenue. Bethel, CT 06801.'
         event_dict['eventVenueAddress2'] = None
+        event_dict['eventVenueTown'] = None
+        event_dict['eventVenueState'] = None
+        event_dict['eventCostHighest'] = None
+        event_dict['eventVenueZip'] = None
+        event_dict['eventVenuePhone'] = '2037948756'
+        event_dict['eventVenueEmail'] = None
+        event_dict['eventVenueURL'] = None
+        event_dict['eventVenueRoom'] = None
+
 
         print(event_dict)
 
