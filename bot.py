@@ -95,7 +95,7 @@ def extract_event_info(root,start_date,end_date):
         event_dict['eventVenuePhone'] = '2037948756'
         event_dict['eventVenueEmail'] = None
         event_dict['eventVenueURL'] = None
-        event_dict['eventVenueRoom'] = NoneeventPurchaseLink
+        event_dict['eventVenueRoom'] = None
         event_dict['eventPurchaseLink'] = None
 
         print(event_dict)
