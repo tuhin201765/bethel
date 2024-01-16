@@ -4,6 +4,7 @@ import re
 # import schedule
 from datetime import datetime
 from subprocess import run
+import pandas as pd
 
 def extract_event_info(root,start_date,end_date):
     if end_date != None:
@@ -81,16 +82,16 @@ def extract_event_info(root,start_date,end_date):
         event_dict['eventStartDateTime'] = f"{start_date} {formatted_start_time.strip()}"
         event_dict['eventEndDateTime'] = f"{end_date} {formatted_end_time.strip()}"
         event_dict['eventCategory'] = None
-        event_dict['eventCostFree'] = None
+        event_dict['eventCostFree'] = 'Y'
         event_dict['eventCostLowest'] = None
         event_dict['eventCostHighest'] = None
         event_dict['eventRsvpLink'] = None
         event_dict['eventUrl '] = None
         event_dict['eventSourceCategories'] = None
-        event_dict['eventSourceWebsite  '] = 'https://www.bethellibrary.org/'
+        event_dict['eventSourceWebsite  '] = 'http://www.eventkeeper.com/'
         event_dict['eventVenueAddress1'] = '189 Greenwood Avenue. Bethel, CT 06801.'
         event_dict['eventVenueAddress2'] = None
-        event_dict['eventVenueTown'] = 'Greenwood Avenue, Bethel'
+        event_dict['eventVenueTown'] = ' Bethel'
         event_dict['eventVenueState'] = 'CT'
         event_dict['eventCostHighest'] = None
         event_dict['eventVenueZip'] = '06801'
@@ -122,6 +123,7 @@ def scrape_eventkeeper():
     root = html.fromstring(html_content)
 
     dates = root.xpath('//div[@class="event_date_row"]/a/@name')
+    all_events_data = []
     for i in range(len(dates)):
         start_date = dates[i]
         if i != len(dates)-1:
@@ -129,10 +131,17 @@ def scrape_eventkeeper():
         else:
             end_date = None
         
-        extract_event_info(root=root,start_date=start_date,end_date=end_date)
+        events_data = extract_event_info(root=root,start_date=start_date,end_date=end_date)
+        for ed in events_data:
+            all_events_data.append(ed)
+    
+        return all_events_data
 
 if __name__=='__main__':
-    scrape_eventkeeper()
+    data = scrape_eventkeeper()
+
+    df = pd.DataFrame(data)
+    df.to_csv('output.csv', index=False)
 # if __name__ == '__main__':
 #     # Schedule the script to run every 10 minutes
 #     schedule.every(10).minutes.do(scrape_eventkeeper)
